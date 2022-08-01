@@ -1,11 +1,29 @@
 const ethers = require('ethers')
+const TelegramBot = require("node-telegram-bot-api");
 require('dotenv').config()
 const network = process.env.BLOCKCHAIN_URL; // using rinkeby testnet
 const network_wss = process.env.BLOCKCHAIN_WSS;
 const address = process.env.WALLET_ADDRESS || "";
 const leastBalance = process.env.LEAST_AMOUNT;
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const bot = new TelegramBot(token, { polling: true });
+let chat_id = ""
+
 
 var init = function() {
+
+    bot.on("message", async (msg) => {
+
+        const { chat: { id }, text } = msg;
+        chat_id = id;
+        // console.log("printing tel: ",msg, id, text)
+        try {
+            bot.sendMessage(chat_id, ` You'll recieve balance updates here`);
+        } catch (error) {
+            bot.sendMessage(chat_id, `something went wrong while sending message`);
+        }
+    
+    });
 
     const provider = ethers.getDefaultProvider(network);
     const customWsProvider = new ethers.providers.WebSocketProvider(network_wss);
@@ -20,8 +38,13 @@ var init = function() {
                     // convert a currency unit from wei to ether
                     const balanceInEth = ethers.utils.formatEther(balance)
                     console.log(`balance: ${balanceInEth} ETH`)
-                    if(balance < leastBalance){
-                        //send notification to discord
+                    if(balanceInEth < leastBalance){
+                        //send notification to telegram
+                        try {
+                            bot.sendMessage(chat_id, ` your currecnt balance is ${balanceInEth}, please add more to avoid anykind of issue`);
+                        } catch (error) {
+                            bot.sendMessage(chat_id, `something went wrong while sending message`);
+                        }
                     }
                 })
             }
